@@ -1,7 +1,9 @@
-from mcp.server.fastmcp import FastMCP
 import json
-from app.config import MODEL_ID
-from app.bedrock_client import get_bedrock_client
+import base64
+import uuid
+from mcp.server.fastmcp import FastMCP
+from app.config import MODEL_ID, S3_BUCKET
+from app.aws_clients import bedrock_client, s3_client
 from app.prompt_text import PROMPT_TEXT
 
 # Initialize FastMCP server
@@ -16,7 +18,12 @@ async def detect_disease(image_base64: str, prompt: str | None = None) -> dict:
         image_base64: Base64 encoded image string (no S3 involved).
         prompt: Optional user prompt; appended to the system prompt.
     """
-    bedrock = get_bedrock_client()
+    # Generate image key and upload to S3
+    image_key = f"uploads/{uuid.uuid4()}.png"
+    image_bytes = base64.b64decode(image_base64)
+    s3_client.put_object(Bucket=S3_BUCKET, Key=image_key, Body=image_bytes)
+    print(f"✅ Uploaded image to s3://{S3_BUCKET}/{image_key}")
+
     full_prompt = PROMPT_TEXT
     if prompt:
         full_prompt += f"\nUser note: {prompt}"
@@ -39,7 +46,7 @@ async def detect_disease(image_base64: str, prompt: str | None = None) -> dict:
     }
 
     # Call Bedrock
-    response = bedrock.invoke_model(
+    response = bedrock_client.invoke_model(
         modelId=MODEL_ID,
         body=json.dumps(request_body),
     )
