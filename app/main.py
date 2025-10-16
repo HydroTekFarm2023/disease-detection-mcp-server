@@ -1,9 +1,11 @@
 import json
 import base64
 import uuid
+from datetime import datetime
+from decimal import Decimal
 from mcp.server.fastmcp import FastMCP
-from app.config import MODEL_ID, S3_BUCKET
-from app.aws_clients import bedrock_client, s3_client
+from app.config import DYNAMO_TABLE_NAME, MODEL_ID, S3_BUCKET
+from app.aws_clients import bedrock_client, dynamodb, s3_client
 from app.prompt_text import PROMPT_TEXT
 
 # Initialize FastMCP server
@@ -29,6 +31,10 @@ async def detect_disease(image_base64: str, prompt: str | None = None) -> dict:
         full_prompt += f"\nUser note: {prompt}"
 
     # Build the Pixtral request
+    """
+    Note: This is a schema for Pixtral Model, The request body schema changes for other Bedrock models.
+    Later on a helper function will be created to handle the request body schema for other Bedrock models.
+    """
     request_body = {
         "messages": [
             {
@@ -69,9 +75,24 @@ async def detect_disease(image_base64: str, prompt: str | None = None) -> dict:
         }
 
     # Save to DynamoDB
-    # item = save_result_to_dynamo(result)
+    table = dynamodb.Table(DYNAMO_TABLE_NAME)
+    item = {
+        "id": str(uuid.uuid4()),
+        "image_key": image_key,
+        "disease_detected": result.get("disease_detected", "Unknown"),
+        "fungal_status": result.get("fungal_status", "Unknown"),
+        "health_status": result.get("health_status", "Unknown"),
+        "plant_part": result.get("plant_part", "Unknown"),
+        "recommendations": result.get("recommendations", []),
+        "confidence_score": Decimal(str(result.get("confidence_score", 0.0))),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    }
 
-    # return {"result": result, "saved_item": item}
+    table.put_item(Item=item)
+    print("✅ Saved to DynamoDB")
+
+    # Return result to client
+    return result
 
 
 if __name__ == "__main__":
