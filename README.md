@@ -65,5 +65,74 @@ Expected response:
 {"message":"Plant Disease MCP API running......."}
 ```
 
+---
 
+# Deployment Option 2: Claude Desktop (Local MCP)
 
+### 1. **Claude Desktop Setup**
+- First, make sure you have Claude for Desktop installed. [You can install the latest version here](https://claude.com/download).
+- If you already have Claude for Desktop, make sure it’s updated to the latest version.
+- We’ll need to configure Claude for Desktop for whichever MCP servers you want to use.
+- To do this, open your Claude for Desktop App configuration at ``~/Library/Application Support/Claude/claude_desktop_config.json`` in a text editor.
+- Make sure to create the file if it doesn’t exist.
+
+macOS/Linux:
+```
+code ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+windows:
+```
+code $env:AppData\Claude\claude_desktop_config.json
+```
+
+### 2. **Add MCP Server**
+You’ll then add your servers in the `mcpServers` key. The MCP UI elements will only show up in Claude for Desktop if at least one server is properly configured.
+
+macOS/Linux:
+```
+{
+  "mcpServers": {
+    "server-name": {
+      "command": "package-installer",     # uv/pip
+      "args": [
+        "--directory",
+        "/ABSOLUTE/PATH/TO/PARENT/FOLDER/mcp-folder",
+        "run",
+        "server-file.py"
+      ]
+    }
+  }
+}
+```
+
+windows:
+```
+{
+  "mcpServers": {
+    "server-name": {
+      "command": "package-installer",     #uv/pip
+      "args": [
+        "--directory",
+        "C:\\ABSOLUTE\\PATH\\TO\\PARENT\\FOLDER\\mcp-folder",
+        "run",
+        "server-file.py"
+      ]
+    }
+  }
+}
+```
+
+**You may need to put the full path to the uv executable in the command field. You can get this by running `which uv` / `which pip` on macOS/Linux or `where uv` / `where pip` on Windows.**
+
+This tells Claude for Desktop:
+1. There’s an MCP server named “server-name”
+2. To launch it by running `uv --directory /ABSOLUTE/PATH/TO/PARENT/FOLDER/mcp-folder run server-file.py`
+
+**Save the file, and restart Claude for Desktop.**
+
+### 3. **Test with Commands**
+- Make sure Claude for Desktop is picking up the two tools we’ve exposed in your `server-name`. You can do this by looking for the `Search and tools`  icon.
+- After clicking on the slider icon, you should see all tools listed.
+- If your server isn’t being picked up by Claude for Desktop, proceed to the **[Troubleshooting](https://modelcontextprotocol.io/docs/develop/build-server#troubleshooting)** section for debugging tips.
+- If the tool settings icon has shown up, you can now test your server by running the commands in Claude for Desktop.
