@@ -6,7 +6,10 @@ app = FastAPI(title="Plant Disease MCP API")
 
 @app.get("/")
 def root():
-    return {"message": "Plant Disease MCP API running......."}
+    return {
+        "message": "Plant Disease MCP API running.......",
+        "tools": ["detect_disease"],
+    }
 
 
 @app.post("/analyze")

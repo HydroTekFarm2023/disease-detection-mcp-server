@@ -1,6 +1,8 @@
+import logging
 import json
 import base64
 import uuid
+import asyncio
 from datetime import datetime
 from decimal import Decimal
 from mcp.server.fastmcp import FastMCP
@@ -12,19 +14,19 @@ from app.prompt_text import PROMPT_TEXT
 mcp = FastMCP("disease-detection-mcp")
 
 
-@mcp.tool()
-async def detect_disease(image_base64: str, prompt: str | None = None) -> dict:
-    """Detects plant disease using Pixtral model and stores results in DynamoDB.
-
-    Args:
-        image_base64: Base64 encoded image string (no S3 involved).
-        prompt: Optional user prompt; appended to the system prompt.
+@mcp.tool(
+    title="Detect Plant Disease",
+    name="detect_plant_disease",
+    description="""
+    Detects plant health condition, if unhealthy it will detect the disease and provide recommendations and preventions.
     """
+)
+async def detect_disease(image_base64: str, prompt: str | None = None) -> dict:
     # Generate image key and upload to S3
-    image_key = f"uploads/{uuid.uuid4()}.png"
+    image_key = f"uploadsMCP/{uuid.uuid4()}.png"
     image_bytes = base64.b64decode(image_base64)
     s3_client.put_object(Bucket=S3_BUCKET, Key=image_key, Body=image_bytes)
-    print(f"✅ Uploaded image to s3://{S3_BUCKET}/{image_key}")
+    logging.info("Uploaded image to s3://{S3_BUCKET}/{image_key}")
 
     full_prompt = PROMPT_TEXT
     if prompt:
@@ -89,7 +91,7 @@ async def detect_disease(image_base64: str, prompt: str | None = None) -> dict:
     }
 
     table.put_item(Item=item)
-    print("✅ Saved to DynamoDB")
+    logging.info("Saved to DynamoDB")
 
     # Return result to client
     return result
@@ -97,3 +99,10 @@ async def detect_disease(image_base64: str, prompt: str | None = None) -> dict:
 
 if __name__ == "__main__":
     mcp.run()
+    # async def main():
+    #     with open("images/bad-strawberry1.jpg", "rb") as f:
+    #         image_base64 = base64.b64encode(f.read()).decode("utf-8")
+    #     prompt=input("Enter the prompt: ")
+    #     result = await detect_disease(image_base64=image_base64, prompt=prompt)
+    #     print(result)
+    # asyncio.run(main())
